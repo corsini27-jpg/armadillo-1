@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bebidas personalizadas – Demo (HTML puro)</title>
+<meta name="description" content="Demo simple: cliente arma su bebida y admin gestiona pedidos.">
+<style>
+  :root{--bg:#f7f9fc;--card:#fff;--ink:#111;--muted:#6b7280;--line:#e5e7eb;--brand:#111;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .top{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:12px}
+  h1{font-size:20px;margin:0}
+  .tabs button{border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff;font-size:12px;cursor:pointer}
+  .tabs .on{background:var(--brand);color:#fff}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:980px){.grid{grid-template-columns:2fr 1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .card h3{margin:0 0 8px 0;font-size:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{font-size:12px;color:var(--muted);display:block;margin:4px 0}
+  input[type="text"],input[type="number"],select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff;font-size:12px;margin:4px 6px 0 0;cursor:pointer}
+  .pill.on{background:#f3f4f6}
+  .muted{color:var(--muted);font-size:12px}
+  .ok{color:#047857;font-size:12px}
+  .warn{color:#92400e;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  .right{text-align:right}
+  .btn{background:var(--brand);color:#fff;border:none;padding:10px 12px;border-radius:12px;cursor:pointer;font-size:13px}
+  .btn.s{padding:6px 10px;font-size:12px}
+  .btn.ghost{background:#fff;color:#111;border:1px solid var(--line)}
+  .flex{display:flex;gap:8px;align-items:center}
+  .between{display:flex;justify-content:space-between;align-items:center}
+  .hidden{display:none}
+  .table-wrap{overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Bebidas personalizadas – Demo (HTML puro)</h1>
+    <div class="tabs">
+      <button id="tabCliente" class="on">Cliente</button>
+      <button id="tabAdmin">Admin</button>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div id="viewCliente">
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <h3>Objetivo rápido (plantillas)</h3>
+          <div id="presetWrap" class="flex" style="flex-wrap:wrap"></div>
+        </div>
+
+        <div class="card">
+          <h3>Base y gasificación</h3>
+          <div class="row">
+            <div class="flex">
+              <input id="co2" type="checkbox">
+              <label for="co2">Con CO₂</label>
+            </div>
+            <div>
+              <label>Sabor</label>
+              <select id="flavor"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Minerales y activos por 330 ml (rangos demo)</h3>
+          <div class="row">
+            <div><label>Cafeína (mg)</label><input id="caffeine" type="number" min="0" max="200" value="60"></div>
+            <div><label>Sodio (mg)</label><input id="sodium" type="number" min="0" max="500" value="80"></div>
+            <div><label>Potasio (mg)</label><input id="potassium" type="number" min="0" max="800" value="200"></div>
+            <div><label>Magnesio (mg)</label><input id="magnesium" type="number" min="0" max="300" value="40"></div>
+          </div>
+          <div style="margin-top:8px">
+            <label>Aminoácidos</label>
+            <div id="aminosWrap"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Validaciones (demo, no normativas)</h3>
+          <div id="warnings" class="muted">—</div>
+          <div class="muted" style="margin-top:6px">La versión final aplicará listas positivas y límites normativos; bloqueará combinaciones fuera de norma y generará etiqueta.</div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>Datos del cliente</h3>
+          <input id="customerName" type="text" placeholder="Nombre del cliente">
+        </div>
+
+        <div class="card">
+          <h3>Resumen de receta (por 330 ml)</h3>
+          <table>
+            <tbody id="labelTable"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Escalado a lote mínimo (2 L)</h3>
+          <table>
+            <tbody id="batchTable"></tbody>
+          </table>
+          <div class="muted" style="margin-top:6px">Valores para hoja de lote y cálculo de insumos.</div>
+        </div>
+
+        <div class="card">
+          <h3>Confirmar pedido (demo)</h3>
+          <button id="btnPedido" class="btn" style="width:100%">Confirmar pedido 2 L (≈ 6×330 ml)</button>
+          <div class="muted" style="margin-top:6px">Genera ID + agrega a la cola de producción (Admin).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="viewAdmin" class="hidden">
+    <div class="card">
+      <div class="between">
+        <h3>Panel Admin – Pedidos</h3>
+        <button id="btnCSV" class="btn ghost s">Exportar CSV</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="search" type="text" placeholder="Buscar por ID/cliente/sabor">
+        <select id="statusFilter">
+          <option value="todos">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="en_produccion">En producción</option>
+          <option value="listo">Listo</option>
+          <option value="despachado">Despachado</option>
+        </select>
+      </div>
+      <div id="count" class="muted" style="margin:8px 0">0 pedido(s)</div>
+      <div class="table-wrap">
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>ID</th><th>Fecha</th><th>Cliente</th><th>Sabor</th><th>CO₂</th>
+              <th>Activos (mg/330)</th><th>Aminos</th><th>Estado</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="muted" style="margin-top:6px">Demo: los pedidos viven solo en memoria (sin base de datos).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Datos base
+  var mlPerCan=330, mlPerBatch=2000;
+  var LIMITS = {
+    caffeine_mg_per_330:{max:100},
+    sodium_mg_per_330:{max:120},
+    potassium_mg_per_330:{max:300},
+    magnesium_mg_per_330:{max:80}
+  };
+  var FLAVORS = [
+    {id:"limon",name:"Limón natural"},
+    {id:"frutos",name:"Frutos rojos"},
+    {id:"maracuya",name:"Maracuyá"},
+    {id:"pomelo",name:"Pomelo"},
+    {id:"naranja",name:"Naranja"}
+  ];
+  var AMINOS = [
+    {id:"bcaa",name:"BCAA"},
+    {id:"betaalanina",name:"Beta-alanina"},
+    {id:"taurina",name:"Taurina"},
+    {id:"ltheanina",name:"L-Teanina"},
+    {id:"creatina",name:"Creatina"}
+  ];
+  var PRESETS = [
+    {id:"pre",name:"Antes del deporte (pre)",co2:true, flavor:"pomelo", caffeine:80,sodium:100,potassium:200,magnesium:50, aminos:["betaalanina","taurina"]},
+    {id:"intra",name:"Durante (intra)",      co2:false,flavor:"limon",  caffeine:0, sodium:110,potassium:250,magnesium:60, aminos:["bcaa"]},
+    {id:"post",name:"Recuperación (post)",   co2:false,flavor:"naranja",caffeine:0, sodium:60, potassion:300,magnesium:70, aminos:["bcaa","creatina"]},
+    {id:"relax",name:"Relajarse",            co2:false,flavor:"frutos", caffeine:0, sodium:20, potassium:80, magensium:60, aminos:["ltheanina"]},
+    {id:"estudio",name:"Estudiar / foco",    co2:false,flavor:"maracuya",caffeine:60,sodium:30,potassium:120,magnesium:40, aminos:["ltheanina"]},
+    {id:"resaca",name:"Resaca / rehidratación",co2:true,flavor:"limon", caffeine:0, sodium:120,potassium:280,magnesium:60, aminos:["bcaa"]}
+  ];
+  // corregir typos en preset (por seguridad)
+  PRESETS.forEach(function(p){
+    if(p.potassion!=null){p.potassium=p.potassion; delete p.potassion;}
+    if(p.magensium!=null){p.magnesium=p.magensium; delete p.magensium;}
+  });
+
+  // Helpers
+  function $(id){return document.getElementById(id);}
+  function el(tag,attrs){var e=document.createElement(tag); if(attrs){for(var k in attrs){e.setAttribute(k,attrs[k]);}} return e;}
+  function fmtDate(d){function pad(n){return String(n).padStart(2,"0");}
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+  function toCSV(rows){
+    if(!rows.length) return "";
+    var headers=Object.keys(rows[0]);
+    var out=[headers.join(",")];
+    rows.forEach(function(r){
+      var line=headers.map(function(h){
+        var v = (r[h]==null?"":String(r[h])).replace(/"/g,'""');
+        return '"'+v+'"';
+      }).join(",");
+      out.push(line);
+    });
+    return out.join("\n");
+  }
+  function clamp(v,min,max){v=Number(v); if(isNaN(v)) v=0; return Math.max(min,Math.min(max,v));}
+
+  // Estado "cliente"
+  var state = {
+    co2:true, flavor:"limon", caffeine:60, sodium:80, potassium:200, magnesium:40,
+    aminos:["bcaa"], customerName:""
+  };
+  // Pedidos (demo)
+  var orders = [
+    {id:"#1001",createdAt:new Date(Date.now()-3600e3),customer:"Ana",co2:true, flavor:"pomelo", caffeine:80,sodium:100,potassium:200,magnesium:50,aminos:["betaalanina","taurina"],status:"pendiente"},
+    {id:"#1002",createdAt:new Date(Date.now()-1800e3),customer:"Carlos",co2:false, flavor:"limon", caffeine:0,sodium:110,potassium:250,magnesium:60,aminos:["bcaa"],status:"en_produccion"}
+  ];
+
+  // UI init
+  // Tabs
+  $("tabCliente").onclick=function(){
+    $("tabCliente").classList.add("on"); $("tabAdmin").classList.remove("on");
+    $("viewCliente").classList.remove("hidden"); $("viewAdmin").classList.add("hidden");
+  };
+  $("tabAdmin").onclick=function(){
+    $("tabAdmin").classList.add("on"); $("tabCliente").classList.remove("on");
+    $("viewAdmin").classList.remove("hidden"); $("viewCliente").classList.add("hidden");
+    renderOrders();
+  };
+
+  // Presets
+  var presetWrap=$("presetWrap");
+  PRESETS.forEach(function(p){
+    var b=el("button",{type:"button"}); b.className="pill"; b.textContent=p.name;
+    b.onclick=function(){
+      state.co2=p.co2; $("co2").checked=p.co2;
+      state.flavor=p.flavor; $("flavor").value=p.flavor;
+      state.caffeine=p.caffeine; $("caffeine").value=p.caffeine;
+      state.sodium=p.sodium; $("sodium").value=p.sodium;
+      state.potassium=p.potassium; $("potassium").value=p.potassium;
+      state.magnesium=p.magnesium; $("magnesium").value=p.magnesium;
+      state.aminos=p.aminos.slice(); renderAminos(); renderAll();
+    };
+    presetWrap.appendChild(b);
+  });
+
+  // Flavor options
+  var flavorSel=$("flavor");
+  FLAVORS.forEach(function(f){
+    var opt=el("option"); opt.value=f.id; opt.textContent=f.name; flavorSel.appendChild(opt);
+  });
+  flavorSel.value=state.flavor;
+
+  // Aminos
+  function renderAminos(){
+    var wrap=$("aminosWrap"); wrap.innerHTML="";
+    AMINOS.forEach(function(a){
+      var lab=el("label"); lab.className="pill"+(state.aminos.indexOf(a.id)>-1?" on":"");
+      var cb=el("input",{type:"checkbox"}); cb.checked=state.aminos.indexOf(a.id)>-1;
+      cb.onchange=function(){
+        if(cb.checked){ if(state.aminos.indexOf(a.id)<0) state.aminos.push(a.id); }
+        else{ state.aminos=state.aminos.filter(function(x){return x!==a.id}); }
+        renderAminos();
+      };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(a.name));
+      wrap.appendChild(lab);
+    });
+  }
+  renderAminos();
+
+  // Inputs bind
+  $("co2").checked=state.co2;
+  $("co2").onchange=function(){state.co2=this.checked;};
+  $("caffeine").oninput=function(){state.caffeine=clamp(this.value,0,200);};
+  $("sodium").oninput=function(){state.sodium=clamp(this.value,0,500);};
+  $("potassium").oninput=function(){state.potassium=clamp(this.value,0,800);};
+  $("magnesium").oninput=function(){state.magnesium=clamp(this.value,0,300);};
+  $("flavor").onchange=function(){state.flavor=this.value;};
+  $("customerName").oninput=function(){state.customerName=this.value;};
+
+  // Render label + batch + warnings
+  function renderAll(){
+    var label=[["Energia kcal",0],["Cafeina mg",state.caffeine],["Sodio mg",state.sodium],["Potasio mg",state.potassium],["Magnesio mg",state.magnesium],["CO₂",state.co2?"Sí":"No"],["Sabor", (FLAVORS.find(f=>f.id===state.flavor)||{}).name||"—"],["Aminoácidos", state.aminos.length? state.aminos.map(function(id){var a=AMINOS.find(x=>x.id===id);return a?a.name:"";}).join(", "):"—"]];
+    var lt=$("labelTable"); lt.innerHTML="";
+    label.forEach(function(r){
+      var tr=el("tr"); var td1=el("td"); td1.textContent=r[0]; td1.className="muted";
+      var td2=el("td"); td2.textContent=r[1]; td2.className="right";
+      tr.appendChild(td1); tr.appendChild(td2); lt.appendChild(tr);
+    });
+
+    var factor=mlPerBatch/mlPerCan;
+    var batch=[["Cafeína total (mg)", Math.round(state.caffeine*factor)],
+               ["Sodio total (mg)"  , Math.round(state.sodium*factor)],
+               ["Potasio total (mg)", Math.round(state.potassium*factor)],
+               ["Magnesio total (mg)",Math.round(state.magnesium*factor)]];
+    var bt=$("batchTable"); bt.innerHTML="";
+    batch.forEach(function(r){
+      var tr=el("tr"); var td1=el("td"); td1.textContent=r[0]; td1.className="muted";
+      var td2=el("td"); td2.textContent=r[1]; td2.className="right";
+      tr.appendChild(td1); tr.appendChild(td2); bt.appendChild(tr);
+    });
+
+    var warns=[];
+    if(state.caffeine  > LIMITS.caffeine_mg_per_330.max)  warns.push("Cafeína > "+LIMITS.caffeine_mg_per_330.max+" mg por 330 ml");
+    if(state.sodium    > LIMITS.sodium_mg_per_330.max)    warns.push("Sodio > "+LIMITS.sodium_mg_per_330.max+" mg por 330 ml");
+    if(state.potassium > LIMITS.potassium_mg_per_330.max) warns.push("Potasio > "+LIMITS.potassium_mg_per_330.max+" mg por 330 ml");
+    if(state.magnesium > LIMITS.magnesium_mg_per_330.max) warns.push("Magnesio > "+LIMITS.magnesium_mg_per_330.max+" mg por 330 ml");
+    var w=$("warnings");
+    if(!warns.length){ w.className="ok"; w.textContent="Todo dentro de rangos demo."; }
+    else{ w.className="warn"; w.innerHTML="<ul style='margin:6px 0 0 18px'>"+warns.map(function(s){return "<li>"+s+"</li>"}).join("")+"</ul>";}
+  }
+  renderAll();
+
+  // Crear pedido
+  $("btnPedido").onclick=function(){
+    var id="#"+Math.floor(1000+Math.random()*9000);
+    var o={ id:id, createdAt:new Date(), customer: state.customerName||"Cliente",
+      co2:state.co2, flavor:state.flavor, caffeine:state.caffeine, sodium:state.sodium,
+      potassium:state.potassium, magnesium:state.magnesium, aminos:state.aminos.slice(), status:"pendiente"
+    };
+    orders.unshift(o);
+    alert("Pedido generado: "+id);
+  };
+
+  // ADMIN render
+  function renderOrders(){
+    var q=$("search").value.trim().toLowerCase();
+    var st=$("statusFilter").value;
+    var rows=orders.filter(function(o){
+      var text=(o.id+" "+o.customer+" "+o.flavor).toLowerCase();
+      var hits=text.indexOf(q)>-1;
+      var ok=(st==="todos"||o.status===st);
+      return hits && ok;
+    });
+
+    $("count").textContent=rows.length+" pedido(s)";
+    var tb=$("ordersTable").querySelector("tbody");
+    tb.innerHTML="";
+    rows.forEach(function(o){
+      var tr=el("tr");
+
+      function td(txt){var t=el("td"); t.textContent=txt; return t;}
+      tr.appendChild(td(o.id));
+      tr.appendChild(td(fmtDate(new Date(o.createdAt))));
+      tr.appendChild(td(o.customer));
+      var flavObj=FLAVORS.find(function(f){return f.id===o.flavor}); tr.appendChild(td(flavObj?flavObj.name:o.flavor));
+      tr.appendChild(td(o.co2?"Sí":"No"));
+      tr.appendChild(td("Caf "+o.caffeine+" / Na "+o.sodium+" / K "+o.potassium+" / Mg "+o.magnesium));
+      tr.appendChild(td((o.aminos||[]).map(function(id){var a=AMINOS.find(function(x){return x.id===id}); return a?a.name:"";}).filter(Boolean).join(", ")||"—"));
+      var st=td(o.status.replace("_"," ")); st.style.textTransform="capitalize"; tr.appendChild(st);
+
+      var actions=el("td");
+      // botones
+      function btn(label,fn){var b=el("button"); b.className="btn ghost s"; b.style.marginRight="6px"; b.textContent=label; b.onclick=fn; return b;}
+      if(o.status!=="en_produccion") actions.appendChild(btn("Producir",function(){o.status="en_produccion"; renderOrders();}));
+      if(o.status!=="listo")         actions.appendChild(btn("Listo",function(){o.status="listo"; renderOrders();}));
+      if(o.status!=="despachado")    actions.appendChild(btn("Despachar",function(){o.status="despachado"; renderOrders();}));
+      actions.appendChild(btn("Etiqueta",function(){
+        var w=window.open("","printwin");
+        var html="<!doctype html><html><head><meta charset='utf-8'><title>Etiqueta "+o.id+"</title>"+
+        "<style>body{font-family:Arial;padding:12px} .row{display:flex;justify-content:space-between} .h{font-weight:700}</style>"+
+        "</head><body>"+
+        "<h2>Etiqueta – "+o.id+"</h2>"+
+        "<div class='row'><div class='h'>Cliente</div><div>"+o.customer+"</div></div>"+
+        "<div class='row'><div class='h'>Sabor</div><div>"+(flavObj?flavObj.name:o.flavor)+"</div></div>"+
+        "<div class='row'><div class='h'>CO₂</div><div>"+(o.co2?"Sí":"No")+"</div></div><hr/>"+
+        "<div class='row'><div>Cafeína (mg/330)</div><div>"+o.caffeine+"</div></div>"+
+        "<div class='row'><div>Sodio (mg/330)</div><div>"+o.sodium+"</div></div>"+
+        "<div class='row'><div>Potasio (mg/330)</div><div>"+o.potassium+"</div></div>"+
+        "<div class='row'><div>Magnesio (mg/330)</div><div>"+o.magnesium+"</div></div>"+
+        "<div class='row'><div>Aminoácidos</div><div>"+((o.aminos||[]).map(function(id){var a=AMINOS.find(function(x){return x.id===id});return a?a.name:\"\";}).join(\", \")||\"—\")+"</div></div>"+
+        "<p>Generado: "+fmtDate(new Date())+"</p>"+
+        "<script>window.onload=()=>window.print()</script>"+
+        "</body></html>";
+        w.document.write(html); w.document.close();
+      }));
+      tr.appendChild(actions);
+
+      tb.appendChild(tr);
+    });
+  }
+  $("search").oninput=renderOrders;
+  $("statusFilter").onchange=renderOrders;
+
+  // CSV
+  $("btnCSV").onclick=function(){
+    // usar lo filtrado actual
+    var q=$("search").value.trim().toLowerCase();
+    var st=$("statusFilter").value;
+    var rows=orders.filter(function(o){
+      var text=(o.id+" "+o.customer+" "+o.flavor).toLowerCase();
+      var hits=text.indexOf(q)>-1;
+      var ok=(st==="todos"||o.status===st);
+      return hits && ok;
+    }).map(function(o){
+      return {
+        id:o.id, fecha:fmtDate(new Date(o.createdAt)), cliente:o.customer,
+        sabor:o.flavor, co2:o.co2, status:o.status,
+        cafeina_mg_330:o.caffeine, sodio_mg_330:o.sodium, potasio_mg_330:o.potassium, magnesio_mg_330:o.magnesium,
+        aminos:(o.aminos||[]).join("|")
+      };
+    });
+    if(!rows.length){alert("No hay filas para exportar"); return;}
+    var blob=new Blob([toCSV(rows)],{type:"text/csv;charset=utf-8;"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a"); a.href=url; a.download="pedidos_"+Date.now()+".csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // primera render
+  renderOrders();
+})();
+</script>
+</body>
+</html>
